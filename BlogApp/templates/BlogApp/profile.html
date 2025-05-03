@@ -1,0 +1,167 @@
+{% extends 'BlogApp/base.html' %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+
+
+<div style="text-align: center; margin-bottom: 10px;">
+    <h2>@{{ profile_user.username }}</h2>
+</div>
+
+
+<div style="display: flex; justify-content: center; gap: 30px; margin-bottom: 20px;">
+    <div><strong>{{ posts.count }}</strong> Posts</div>
+    <div><strong>{{ followers.count }}</strong> <a href="#" onclick="toggleList('followers-list')">Followers</a></div>
+    <div><strong>{{ followings.count }}</strong> <a href="#" onclick="toggleList('following-list')">Following</a></div>
+</div>
+
+<!-- Followers list  -->
+<div id="followers-list" style="display: none; text-align: center; margin-bottom: 20px;">
+    <h4>Followers</h4>
+    <ul style="list-style: none;">
+        {% for f in followers %}
+            <li><a href="{% url 'profile' f.follower.username %}">@{{ f.follower.username }}</a></li>
+        {% empty %}
+            <li>No followers yet.</li>
+        {% endfor %}
+    </ul>
+</div>
+
+<!-- Followings list  -->
+<div id="following-list" style="display: none; text-align: center; margin-bottom: 20px;">
+    <h4>Following</h4>
+    <ul style="list-style: none;">
+        {% for f in followings %}
+            <li><a href="{% url 'profile' f.following.username %}">@{{ f.following.username }}</a></li>
+        {% empty %}
+            <li>Not following anyone.</li>
+        {% endfor %}
+    </ul>
+</div>
+
+<!-- Follow/Unfollow button -->
+<div style="text-align: center; margin-bottom: 30px;">
+    {% if profile_user != user %}
+        {% if is_following %}
+            <a href="{% url 'unfollow' profile_user.username %}" class="button">Unfollow</a>
+        {% else %}
+            <a href="{% url 'follow' profile_user.username %}" class="button">Follow</a>
+        {% endif %}
+    {% endif %}
+</div>
+
+<!-- Tab Navigation -->
+<div style="display: flex; justify-content: center; gap: 40px; margin-bottom: 10px;">
+    <h3 id="posts-tab" class="profile-tab active-tab" onclick="showTab('posts')">Posts</h3>
+    <h3 id="tagged-tab" class="profile-tab" onclick="showTab('tagged')">Tagged</h3>
+</div>
+
+<!-- Posts Section -->
+<div id="posts-section">
+    {% for post in posts %}
+        <div class="post" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
+            <div class="post-header" style="margin-bottom: 10px;">
+                <strong>@{{ post.author.username }}</strong>
+                <small style="float: right;">{{ post.created_at|date:"M d, Y H:i" }}</small>
+            </div>
+
+            <div class="post-content" style="margin-bottom: 10px;">{{ post.content }}</div>
+
+            {% if post.author == user %}
+    <div style="display: flex; gap: 10px;">
+        <a href="{% url 'update_post' post.id %}" title="Edit" style="color: #007bff;">
+            <i class="fas fa-pen"></i>
+        </a>
+        <a href="{% url 'delete_post' post.id %}" title="Delete" style="color: red;">
+            <i class="fas fa-trash"></i>
+        </a>
+    </div>
+{% endif %}
+
+
+            <!-- Comments Section -->
+            <div class="comments" style="margin-top: 10px;">
+                <h5>Comments:</h5>
+                {% for comment in post.comments.all %}
+                    <p style="margin-bottom: 5px;"><strong>{{ comment.author.username }}</strong>: {{ comment.text }}</p>
+                {% empty %}
+                    <p style="color: #888;">No comments yet.</p>
+                {% endfor %}
+
+                <!-- Comment Input -->
+                <form method="post" action="{% url 'comment' post.id %}" style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
+                    {% csrf_token %}
+                    {{ comment_form.text }}
+                    <button type="submit" title="Add Comment" style="background: none; border: none; cursor: pointer; color: #007bff;">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    {% empty %}
+        <p>No posts yet.</p>
+    {% endfor %}
+</div>
+
+<!-- Tagged Section -->
+<div id="tagged-section" style="display: none;">
+    {% for post in tagged_posts %}
+        <div class="post" style="border: 1px solid #ddd; padding: 15px; margin-bottom: 20px; border-radius: 8px;">
+            <div class="post-header" style="margin-bottom: 10px;">
+                <strong>@{{ post.author.username }}</strong>
+                <small style="float: right;">{{ post.created_at|date:"M d, Y H:i" }}</small>
+            </div>
+
+            <div class="post-content" style="margin-bottom: 10px;">{{ post.content }}</div>
+
+            <!-- Comments Section -->
+            <div class="comments" style="margin-top: 10px;">
+                <h5>Comments:</h5>
+                {% for comment in post.comments.all %}
+                    <p style="margin-bottom: 5px;"><strong>{{ comment.author.username }}</strong>: {{ comment.text }}</p>
+                {% empty %}
+                    <p style="color: #888;">No comments yet.</p>
+                {% endfor %}
+
+                <!-- Comment Input -->
+                <form method="post" action="{% url 'comment' post.id %}" style="margin-top: 10px; display: flex; align-items: center; gap: 10px;">
+                    {% csrf_token %}
+                    {{ comment_form.text }}
+                    <button type="submit" title="Add Comment" style="background: none; border: none; cursor: pointer; color: #007bff;">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    {% empty %}
+        <p>No tagged posts.</p>
+    {% endfor %}
+</div>
+
+
+<script>
+function showTab(tabName) {
+    const postsTab = document.getElementById('posts-tab');
+    const taggedTab = document.getElementById('tagged-tab');
+    const postsSection = document.getElementById('posts-section');
+    const taggedSection = document.getElementById('tagged-section');
+
+    if (tabName === 'posts') {
+        postsSection.style.display = 'block';
+        taggedSection.style.display = 'none';
+        postsTab.classList.add('active-tab');
+        taggedTab.classList.remove('active-tab');
+    } else {
+        postsSection.style.display = 'none';
+        taggedSection.style.display = 'block';
+        taggedTab.classList.add('active-tab');
+        postsTab.classList.remove('active-tab');
+    }
+}
+
+function toggleList(id) {
+    const el = document.getElementById(id);
+    el.style.display = (el.style.display === "none") ? "block" : "none";
+}
+</script>
+
+{% endblock %}
